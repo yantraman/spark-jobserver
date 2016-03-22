@@ -17,6 +17,10 @@ object Dependencies {
     "joda-time" % "joda-time" % "2.2"
   )
 
+  lazy val miscDeps = Seq(
+    "org.scalactic"        %% "scalactic"         % "2.2.6"
+  )
+
   lazy val akkaDeps = Seq(
     // Akka is provided because Spark already includes it, and Spark's version is shaded so it's not safe
     // to use this one
@@ -68,7 +72,7 @@ object Dependencies {
   )
 
   lazy val serverDeps = apiDeps ++ yodaDeps
-  lazy val apiDeps = sparkDeps :+ typeSafeConfigDeps
+  lazy val apiDeps = sparkDeps ++ miscDeps :+ typeSafeConfigDeps
 
   val repos = Seq(
     "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
