@@ -61,8 +61,10 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic" % "1.0.7"
   )
 
+  lazy val scalaTestDep = "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+
   lazy val coreTestDeps = Seq(
-    "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+    scalaTestDep,
     "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
     "io.spray" %% "spray-testkit" % "1.3.2" % "test"
   )
@@ -72,7 +74,7 @@ object Dependencies {
   )
 
   lazy val serverDeps = apiDeps ++ yodaDeps
-  lazy val apiDeps = sparkDeps ++ miscDeps :+ typeSafeConfigDeps
+  lazy val apiDeps = sparkDeps ++ miscDeps :+ typeSafeConfigDeps :+ scalaTestDep
 
   val repos = Seq(
     "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
