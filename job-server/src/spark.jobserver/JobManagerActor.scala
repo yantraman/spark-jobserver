@@ -8,9 +8,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import ooyala.common.akka.InstrumentedActor
 import org.apache.spark.{ SparkEnv, SparkContext }
 import org.joda.time.DateTime
+import org.scalactic._
 import scala.concurrent.{ Future, ExecutionContext }
 import scala.util.{Failure, Success, Try}
 import spark.jobserver.ContextSupervisor.StopContext
+import spark.jobserver.api.JobEnvironment
 import spark.jobserver.io.{JobDAOActor, JobDAO, JobInfo, JarInfo}
 import spark.jobserver.util.{ContextURLClassLoader, SparkJobUtils}
 
@@ -96,6 +98,15 @@ class JobManagerActor(contextConfig: Config) extends InstrumentedActor {
   private var daoActor: ActorRef = _
 
   private val jobServerNamedObjects = new JobServerNamedObjects(context.system)
+
+  private def getEnvironment(_jobId: String): JobEnvironment = {
+    val _contextCfg = contextConfig
+    new JobEnvironment {
+      def jobId: String = _jobId
+      def namedObjects: NamedObjects = jobServerNamedObjects
+      def contextConfig: Config = _contextCfg
+    }
+  }
 
   override def postStop() {
     logger.info("Shutting down SparkContext {}", contextName)
@@ -255,28 +266,22 @@ class JobManagerActor(contextConfig: Config) extends InstrumentedActor {
       // NOTE: This may not even be necessary if we set the driver ActorSystem classloader correctly
       Thread.currentThread.setContextClassLoader(jarLoader)
       val job = constructor()
-      if (job.isInstanceOf[NamedObjectSupport]) {
-        val namedObjects = job.asInstanceOf[NamedObjectSupport].namedObjectsPrivate
-        if (namedObjects.get() == null) {
-          namedObjects.compareAndSet(null, jobServerNamedObjects)
-        }
-      }
-
       try {
         statusActor ! JobStatusActor.JobInit(jobInfo)
 
         val jobC = jobContext.asInstanceOf[job.C]
-        job.validate(jobC, jobConfig) match {
-          case SparkJobInvalid(reason) => {
-            val err = new Throwable(reason)
+        val jobEnv = getEnvironment(jobId)
+        job.validate(jobC, jobEnv, jobConfig) match {
+          case Bad(reasons) => {
+            val err = new Throwable(reasons.toString)
             statusActor ! JobValidationFailed(jobId, DateTime.now(), err)
             throw err
           }
-          case SparkJobValid => {
+          case Good(jobData) => {
             statusActor ! JobStarted(jobId: String, contextName, jobInfo.startTime)
             val sc = jobContext.sparkContext
             sc.setJobGroup(jobId, s"Job group for $jobId and spark context ${sc.applicationId}", true)
-            job.runJob(jobC, jobConfig)
+            job.runJob(jobC, jobEnv, jobData)
           }
         }
       } finally {

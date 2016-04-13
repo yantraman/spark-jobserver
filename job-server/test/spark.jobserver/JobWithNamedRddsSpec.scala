@@ -11,6 +11,7 @@ import spark.jobserver.CommonMessages.{ JobErroredOut, JobResult }
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration._
 import org.apache.spark.rdd.RDD
+
 class JobWithNamedRddsSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
 
   private val emptyConfig = ConfigFactory.parseString("spark.jobserver.named-object-creation-timeout = 60 s")
@@ -26,13 +27,7 @@ class JobWithNamedRddsSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
   }
 
   val job = new TestJob1
-
-  if (job.isInstanceOf[NamedObjectSupport]) {
-    val namedObjects = job.asInstanceOf[NamedObjectSupport].namedObjectsPrivate
-    if (namedObjects.get() == null) {
-      namedObjects.compareAndSet(null, new JobServerNamedObjects(system))
-    }
-  }
+  job.namedObjects = new JobServerNamedObjects(system)
   val namedTestRdds = job.namedRdds
 
   override def afterAll() {
