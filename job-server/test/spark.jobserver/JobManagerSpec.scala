@@ -1,16 +1,15 @@
 package spark.jobserver
 
-import java.nio.file.Paths
+import scala.collection.mutable
 
 import com.typesafe.config.ConfigFactory
 import spark.jobserver.JobManagerActor.KillJob
-import scala.collection.mutable
-import spark.jobserver.io.JobDAO
 
 object JobManagerSpec extends JobSpecConfig
 
 abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
   import scala.concurrent.duration._
+
   import CommonMessages._
   import JobManagerSpec.MaxJobsPerContext
   import akka.testkit._
@@ -108,7 +107,7 @@ abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
       uploadTestJar()
       manager ! JobManagerActor.StartJob("demo", wordCountClass, stringConfig, syncEvents ++ errorEvents)
       expectMsgPF(startJobWait, "Did not get JobResult") {
-        case JobResult(_, result: Map[String, Int]) => result should equal (counts)
+        case JobResult(_, result) => result should equal (counts)
       }
       expectNoMsg()
     }
@@ -120,7 +119,7 @@ abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
       uploadTestJar()
       manager ! JobManagerActor.StartJob("demo", newWordCountClass, stringConfig, syncEvents ++ errorEvents)
       expectMsgPF(startJobWait, "Did not get JobResult") {
-        case JobResult(_, result: Map[String, Int]) => result should equal (counts)
+        case JobResult(_, result) => result should equal (counts)
       }
       expectNoMsg()
     }
@@ -142,7 +141,7 @@ abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
       uploadTestJar()
       manager ! JobManagerActor.StartJob("demo", classPrefix + "MyErrorJob", emptyConfig, errorEvents)
       val errorMsg = expectMsgClass(startJobWait, classOf[JobErroredOut])
-      errorMsg.err.getClass should equal (classOf[IllegalArgumentException])
+      errorMsg.err.getClass should equal (classOf[RuntimeException])
     }
 
     it("job should get jobConfig passed in to StartJob message") {
@@ -154,7 +153,7 @@ abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
       manager ! JobManagerActor.StartJob("demo", classPrefix + "ConfigCheckerJob", jobConfig,
         syncEvents ++ errorEvents)
       expectMsgPF(startJobWait, "Did not get JobResult") {
-        case JobResult(_, keys: Seq[String]) =>
+        case JobResult(_, keys: Seq[_]) =>
           keys should contain ("foo")
       }
     }
@@ -228,10 +227,10 @@ abstract class JobManagerSpec extends JobSpecBase(JobManagerSpec.getNewSystem) {
       uploadTestJar()
       manager ! JobManagerActor.StartJob("demo", classPrefix + "LongPiJob", stringConfig, allEvents)
       expectMsgPF(5.seconds.dilated, "Did not get JobResult") {
-        case JobStarted(id, _, _) => {
+        case JobStarted(id, _, _) =>
           manager ! KillJob(id)
           expectMsgClass(classOf[JobKilled])
-        }
+
       }
     }
 
