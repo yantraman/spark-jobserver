@@ -17,12 +17,9 @@ object Dependencies {
   }
   lazy val yammerDeps = "com.yammer.metrics" % "metrics-core" % "2.2.0"
 
-  lazy val jodaDeps = Seq(
-    "org.joda" % "joda-convert" % "1.8.1",
-    "joda-time" % "joda-time" % "2.9.3"
-  )
-
   lazy val miscDeps = Seq(
+    "org.joda"              % "joda-convert"      % "1.8.1",
+    "joda-time"             % "joda-time"         % "2.9.3",
     "org.scalactic"        %% "scalactic"         % "2.2.6"
   )
 
@@ -37,7 +34,7 @@ object Dependencies {
     "io.spray" %% "spray-routing" % "1.3.3",
     "io.spray" %% "spray-client" % "1.3.3",
     yammerDeps
-  ) ++ jodaDeps
+  )
 
   val javaVersion = sys.env.getOrElse("JAVA_VERSION", "7-jre")
 
@@ -80,7 +77,7 @@ object Dependencies {
      "org.apache.shiro" % "shiro-core" % "1.2.4"
   )
 
-  lazy val serverDeps = apiDeps ++ jodaDeps
+  lazy val serverDeps = apiDeps
   lazy val apiDeps = sparkDeps ++ miscDeps :+ typeSafeConfigDeps :+ scalaTestDep
 
   val repos = Seq(
